@@ -1,0 +1,1294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vanitas Receipt</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&family=Gowun+Batang:wght@400;700&family=Noto+Sans+KR:wght@300;500;700&family=Noto+Sans+JP:wght@400;700&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <style>
+    /* [Global Reset] */
+    *, *::before, *::after { box-sizing: border-box; }
+
+    :root {
+        --bg-color: #1b1b1b;
+        --accent-color: #caad39;
+        --text-color: #bbbbbb;   
+        --white-color: #e7e7e7;  
+        --receipt-bg: #fdfdfd;
+        --receipt-text: #222222;
+        --ink-color: #2a2a2a; 
+    }
+
+    body {
+        background-color: var(--bg-color);
+        color: var(--text-color);
+        font-family: 'Gowun Batang', 'Noto Sans KR', serif;
+        margin: 0; padding: 0;
+        min-height: 100vh;
+        overflow-x: hidden;
+        position: relative;
+    }
+
+    /* [Matrix Rain - Top Layer] */
+    #matrixCanvas {
+        position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+        z-index: 0; 
+        pointer-events: none; 
+        background: transparent;
+    }
+
+    /* [Layout] */
+    .main-wrapper {
+        position: relative; z-index: 10;
+        min-height: 100vh; width: 100%;
+        display: flex; flex-direction: column; 
+        align-items: center; justify-content: center;
+        padding: 40px 20px;
+    }
+
+    /* [Text Effects] */
+    .glow-text {
+        color: var(--text-color);
+        animation: soft-breathing 4s infinite alternate;
+    }
+    .accent-glow {
+        color: var(--accent-color);
+        animation: accent-breathing 4s infinite alternate;
+    }
+
+    @keyframes soft-breathing {
+        0% { opacity: 0.8; text-shadow: 0 0 2px rgba(255,255,255,0.1); }
+        100% { opacity: 1; text-shadow: 0 0 10px rgba(255,255,255,0.3); }
+    }
+    @keyframes accent-breathing {
+        0% { opacity: 0.8; text-shadow: 0 0 5px rgba(202, 173, 57, 0.3); }
+        100% { opacity: 1; text-shadow: 0 0 20px rgba(202, 173, 57, 0.7); }
+    }
+
+    /* [Header] */
+    .header-group {
+        display: flex; flex-direction: column; align-items: center;
+        margin-bottom: 20px; width: 100%; max-width: 600px;
+    }
+
+    .eyes-container {
+        display: flex; justify-content: center; gap: 48px; 
+        margin-bottom: 0px;
+    }
+    .eye {
+        width: 70px; height: 70px; background-color: var(--accent-color);
+        border-radius: 50%; display: flex; justify-content: center; align-items: center;
+        box-shadow: 0 0 30px rgba(202, 173, 57, 0.5); 
+        animation: old-bulb 4s infinite; 
+    }
+    .pupil {
+        width: 5px; height: 48px; background-color: #000;
+        border-radius: 50%; transition: all 0.5s;
+    }
+
+    @keyframes old-bulb {
+        0%, 100% { opacity: 1; box-shadow: 0 0 30px rgba(202, 173, 57, 0.6); }
+        3% { opacity: 0.1; box-shadow: 0 0 0px rgba(202, 173, 57, 0); } 
+        4% { opacity: 1; box-shadow: 0 0 30px rgba(202, 173, 57, 0.6); }
+        24% { opacity: 1; }
+        25% { opacity: 0.6; box-shadow: 0 0 10px rgba(202, 173, 57, 0.3); } 
+        26% { opacity: 1; }
+        60% { opacity: 1; }
+        61% { opacity: 0.2; } 
+        62% { opacity: 1; }
+    }
+
+    .intro-title {
+        color: var(--white-color); font-size: 2.5rem; font-weight: 700;
+        margin-bottom: 20px; 
+        font-family: 'Gowun Batang', serif;
+    }
+
+    .subtitle-area {
+        min-height: 80px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+        text-align: center; font-size: 1rem; line-height: 1.6; margin-bottom: 10px;
+    }
+    .timer-text { font-weight: bold; }
+    .content-area { width: 100%; display: flex; flex-direction: column; align-items: center; }
+    .hidden { display: none !important; }
+
+    .btn-text {
+        background: none; border: none; 
+        font-size: 1.1rem; font-weight: 700; font-family: 'Gowun Batang', serif;
+        cursor: pointer; padding: 10px 20px;
+        transition: all 0.3s ease; display: block; margin: 10px auto;
+        text-decoration: none; 
+        text-align: center;
+        line-height: 1.4;
+    }
+    .btn-text:hover { color: var(--white-color); transform: scale(1.05); text-shadow: 0 0 10px var(--accent-color); }
+
+    /* [Receipt] */
+    #capture-target {
+        padding: 10px; background-color: transparent; 
+        border-radius: 20px; display: flex; flex-direction: column; align-items: center;
+    }
+    .receipt-wrapper { perspective: 1000px; }
+
+    .receipt-paper {
+        background-color: transparent; 
+        color: var(--ink-color);
+        width: 380px; height: 905px; 
+        padding: 75px 28px 60px 28px; 
+        font-family: 'Courier Prime', 'Courier New', monospace;
+        font-size: 12px; line-height: 1.4; 
+        text-align: left; position: relative;
+        box-shadow: none;
+        filter: drop-shadow(0 15px 20px rgba(0,0,0,0.6)); 
+        background-image: url('./receipt_bg.png'); 
+        background-size: 100% 100%; 
+        background-repeat: no-repeat;
+        background-position: center;
+        transform-origin: top center;
+        display: flex; flex-direction: column; justify-content: flex-start; 
+        opacity: 0;
+    }
+
+    .receipt-paper.printing {
+        animation: printReceipt 1.2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes printReceipt { 
+        from { opacity: 0; transform: translateY(-50px) rotateX(-10deg); } 
+        to { opacity: 1; transform: translateY(0) rotateX(0); } 
+    }
+
+    .rc-top-section { width: 100%; flex: 1; }
+    
+    /* ▼▼▼ [수정 1] 화면용 타이틀 크기 조절하는 곳 ▼▼▼ */
+    .rc-title { 
+    font-size: 27px;
+    letter-spacing: 6px;
+    font-weight: 900; 
+    
+    /* ▼▼▼ 여기가 핵심 수정 포인트 ▼▼▼ */
+    margin-bottom: 5px;   /* 기존 10px -> 0px로 변경 (밀어내기 금지) */
+    line-height: 1;       /* 줄 간격을 글자 크기에 딱 맞춤 (위아래 여백 제거) */
+    /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
+
+    display: block; 
+    white-space: nowrap; 
+    text-align: center; 
+    width: 100%; 
+}
+    
+    .rc-content-container { animation: text-flicker 0.1s infinite alternate; width: 100%; height: 100%; display: flex; flex-direction: column; }
+
+    @keyframes text-flicker { 0% { opacity: 1; } 100% { opacity: 0.95; } }
+
+    .rc-header { text-align: center; margin-bottom: 10px; }
+    .rc-eyes-container { display: flex; justify-content: center; gap: 20px; margin-bottom: 8px; opacity: 0.9; }
+    .rc-eye { width: 30px; height: 30px; background-color: transparent; border: 2px solid var(--ink-color); border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+    .rc-pupil { width: 3px; height: 20px; background-color: var(--ink-color); border-radius: 50%; }
+    /* [수정] .rc-sub 클래스를 찾아 통째로 교체하세요 */
+    .rc-sub { 
+    font-size: 14px;       /* 기존 10px -> 14px로 확대 */
+    text-transform: uppercase; 
+    letter-spacing: 1px; 
+    
+    /* 위치 조절을 위해 추가된 속성들 */
+    display: block;        /* 마진이 잘 먹히도록 블록 요소로 변경 */
+    margin-top: -5px;      /* 위쪽으로 5px만큼 강제로 당김 */
+    }
+    .rc-divider { border-top: 1px dashed #555; margin: 8px 0; height: 1px; width: 100%; display: block; opacity: 0.7;}
+    
+    .rc-row { 
+        display: flex; 
+        justify-content: space-between; 
+        align-items: flex-start; 
+        margin-bottom: 6px; 
+    }
+    .rc-col-left {
+        text-align: left;
+        flex: 1; 
+        padding-right: 10px; 
+        word-break: keep-all; 
+        overflow-wrap: break-word;
+        line-height: 1.3;
+    }
+    .rc-col-right {
+        text-align: right;
+        white-space: nowrap; 
+        flex-shrink: 0;
+    }
+
+    .stat-row { display: flex; justify-content: space-between; margin-bottom: 2px; align-items: center; }
+    .stat-name { width: 140px; flex-shrink: 0; } 
+    .stat-val { text-align: right; font-weight: bold; flex: 1; white-space: nowrap; } 
+    
+    .rc-barcode { margin-top: auto; padding-top: 5px; text-align: center; display: flex; flex-direction: column; align-items: center; width: 100%; }
+    .barcode-lines {
+        height: 35px; width: 95%; margin-bottom: 3px;
+        background: repeating-linear-gradient(to right, #222 0px, #222 2px, transparent 2px, transparent 4px, #222 4px, #222 5px, transparent 5px, transparent 9px);
+    }
+    .scramble { display: inline-block; }
+
+    .capture-footer { display: none; margin-top: 30px; text-align: center; color: #888; font-size: 0.9rem; font-family: 'Courier New', monospace; }
+
+    footer { 
+        margin-top: 60px;
+        text-align: center; 
+        font-size: 0.8rem; 
+        color: #666; 
+        width: 100%; 
+        flex-shrink: 0;
+    }
+
+    .lang-select { 
+        display: flex; 
+        justify-content: center; 
+        gap: 30px; 
+        margin-bottom: 20px; 
+        font-weight: bold; 
+        letter-spacing: 1px; 
+    }
+    .lang-select span { 
+        cursor: pointer; 
+        transition: 0.3s; 
+        color: var(--text-color); 
+        opacity: 0.5; 
+    }
+    .lang-select span:hover, 
+    .lang-select span.active { 
+        color: var(--accent-color) !important; 
+        opacity: 1; 
+        text-shadow: 0 0 10px var(--accent-color); 
+    }
+
+    .linktree-btn {
+        display: inline-block;
+        background: none;
+        border: none;
+        font-size: inherit; 
+        font-weight: 700;
+        font-family: 'Gowun Batang', serif;
+        cursor: pointer;
+        padding: 5px 10px;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        color: var(--accent-color); 
+        margin-bottom: 10px;
+    }
+    .linktree-btn:hover {
+        color: var(--white-color);
+        transform: scale(1.05);
+        text-shadow: 0 0 10px var(--accent-color);
+    }
+    </style>
+
+    <script src="./items.js"></script>
+
+</head>
+<body>
+
+    <canvas id="matrixCanvas"></canvas>
+
+    <div class="main-wrapper">
+        <div class="header-group">
+            <div class="eyes-container">
+                <div class="eye"><div class="pupil"></div></div>
+                <div class="eye"><div class="pupil"></div></div>
+            </div>
+            <div class="intro-title glow-text glitch-target" data-key="title">Vanitas Receipt</div>
+            
+            <div class="subtitle-area">
+                <div id="sub-home">
+                    <span class="glow-text glitch-target" data-key="sub_home"></span>
+                </div>
+                <div id="sub-result" class="hidden">
+                    <span class="glow-text" data-key="msg_issued"></span><br>
+                    <span id="timer-display" class="timer-text accent-glow">00:59:59</span>
+                    <span class="glow-text" data-key="msg_reset"></span>
+                </div>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <div id="action-home">
+                <button class="btn-text accent-glow glitch-target" onclick="generateReceipt()" data-key="btn_issue">Issue Receipt</button>
+                <a href="https://www.paypal.com/ncp/payment/FZ6EU86QNH6E8" target="_blank" class="btn-text accent-glow" data-key="btn_donate">Donate</a>
+            </div>
+
+            <div id="action-result" class="hidden">
+                <div id="capture-target">
+                    <div class="receipt-wrapper">
+                        <div class="receipt-paper">
+                            <div class="rc-content-container">
+                                <div class="rc-top-section">
+                                    <div class="rc-header">
+                                        <div class="rc-eyes-container">
+                                            <div class="rc-eye"><div class="rc-pupil"></div></div>
+                                            <div class="rc-eye"><div class="rc-pupil"></div></div>
+                                        </div>
+                                        
+                                        <span class="rc-title scramble">VANITAS RECEIPT</span>
+                                        <span class="rc-sub scramble">NULLWOOD VANITAS STORE</span>
+                                    </div>
+                                    <span class="rc-divider"></span>
+                                    <div class="rc-row"><span class="rc-col-left" data-key="rc_date_past"></span><span class="rc-col-right scramble" id="rc-date-past"></span></div>
+                                    <div class="rc-row"><span class="rc-col-left" data-key="rc_date_now"></span><span class="rc-col-right scramble" id="rc-date-now"></span></div>
+                                    <div class="rc-row"><span class="rc-col-left scramble">POS : NULLWOOD_VANITAS_CVS</span></div>
+                                    <span class="rc-divider"></span>
+                                    <div class="rc-row"><span data-key="rc_stat_report"></span><span data-key="rc_val_state"></span></div>
+                                    <span class="rc-divider"></span>
+                                    <div id="rc-stats-list"></div>
+                                    <span class="rc-divider"></span>
+                                    <div class="rc-row"><span data-key="rc_loot_list"></span><span data-key="rc_value"></span></div>
+                                    <span class="rc-divider"></span>
+                                    <div id="rc-loot-list"></div>
+                                    <span class="rc-divider"></span>
+                                    <div class="rc-row"><span data-key="rc_subtotal"></span><span id="rc-subtotal" class="scramble"></span></div>
+                                    <div class="rc-row"><span data-key="rc_tax"></span><span id="rc-tax" class="scramble"></span></div>
+                                    <span class="rc-divider"></span>
+                                    <div class="rc-row" style="font-size: 14px; font-weight: bold;"><span data-key="rc_total"></span><span id="rc-total" class="scramble"></span></div>
+                                    <span class="rc-divider"></span>
+                                    <div style="text-align: center; margin: 10px 0;" data-key="rc_norefund"></div>
+                                </div>
+
+                                <div class="rc-barcode">
+                                    <div class="barcode-lines"></div>
+                                    <span id="rc-barcode-num" class="scramble"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="capture-footer">
+                        Design By SHHAN &nbsp; SHHAN's Linktree<br>&copy; 2026 SHHAN. All rights reserved.
+                    </div>
+                </div>
+                <button class="btn-text accent-glow glitch-target" onclick="downloadReceipt()" style="margin-top: 10px;" data-key="btn_download">Download Receipt</button>
+                <a href="https://www.paypal.com/ncp/payment/FZ6EU86QNH6E8" target="_blank" class="btn-text accent-glow" data-key="btn_donate">Donate</a>
+            </div>
+        </div>
+
+        <footer>
+            <div class="lang-select glow-text">
+                <span onclick="setLang('EN')" class="active">EN</span>
+                <span onclick="setLang('KR')">한국어</span>
+                <span onclick="setLang('JP')">日本語</span>
+                <span onclick="setLang('TW')">繁體中文</span>
+            </div>
+            <div class="copyright glow-text">
+                <span class="glitch-target">Design By SHHAN</span><br>
+                <a href="https://linktr.ee/shhan1211" target="_blank" class="linktree-btn glitch-target">SHHAN's Linktree</a><br>
+                <span class="glitch-target" style="font-size: 0.7rem; color: #555;">&copy; 2026 SHHAN. All rights reserved.</span><br>
+                
+                <span style="font-size: 0.65rem; opacity: 0.6; line-height: 1.4; display: block; margin-top: 5px;">
+                    All data is processed locally.<br>
+                    Original IP : NULLWOOD
+                </span>
+            </div>
+            </footer>
+    </div>
+
+    <script>
+    // items.json 불러오기
+    async function loadItems() {
+        try {
+            const response = await fetch('./items.json');
+            if (!response.ok) throw new Error('Failed to load items.json');
+            const data = await response.json();
+            return data.items;
+        } catch (error) {
+            console.error('items.json 로드 실패:', error);
+            return [];
+        }
+    }
+
+        const uiData = {
+            EN: {
+                title: "Vanitas Receipt",
+                sub_home: "A payment record from you in another spacetime has been discovered.<br>Would you like to issue the receipt?",
+                btn_issue: "Issue Receipt",
+                btn_donate: "<span style='display:block; font-size: 0.8rem; font-weight: 400; opacity: 0.8; margin-bottom: 2px;'>For myself in another spacetime</span>Leave a Tip (Donate)",
+                btn_download: "Download Receipt",
+                msg_issued: "The receipt has been issued. Don't forget to download it.",
+                msg_reset: "until reset. (Randomly Reset)",
+                
+                rc_date_past: "Trace Date :",
+                rc_date_now: "Issued Date :",
+                rc_stat_report: "< STATUS SCAN >",
+                rc_val_state: "< VALUE / STATUS >",
+                rc_loot_list: "< PURCHASED ITEMS >",
+                rc_value: "< VALUE >",
+                rc_subtotal: "Subtotal",
+                rc_tax: "Nullwood Tax",
+                rc_total: "GRAND TOTAL",
+                rc_norefund: "* NO REFUNDS ALLOWED *",
+                stats: {
+                    health: "Health", energy: "Energy", mental: "Mental", brain: "Brain",
+                    focus: "Focus", sense: "Sense", anger: "Anger", emotion: "Emotion",
+                    stance: "Stance", social: "Social", love: "Love", luck: "Luck"
+                },
+                val: {
+                    high: "High", mid: "Mid", low: "Low",
+                    good: "Good", bad: "Bad",
+                    attack: "Attack", defense: "Defense",
+                    mask: "Mask", real: "Real",
+                    gold: "TK" 
+                },
+                emotions: {
+                    calm: "CALM", empty: "EMPTY", panic: "PANIC", joy: "JOY", rage: "RAGE",
+                    gloom: "GLOOM", haze: "HAZE", void: "VOID", love: "LOVE", chaos: "CHAOS"
+                },
+                formats: {
+                    VHS: "VHS", DVD: "DVD", "Film Reel": "Film Reel",
+                    Cassette: "Cassette", CD: "CD", LP: "LP",
+                    NES: "NES", SNES: "SNES", N64: "N64", GB: "Game Boy",
+                    PS1: "PlayStation", PS2: "PS2", PC: "PC Game", Arcade: "Arcade",
+                    Magazine: "Magazine", Comic: "Comic Book", Photobook: "Photobook"
+                }
+            },
+            KR: {
+                title: "바니타스 영수증",
+                sub_home: "다른 시공간의 당신이 결제한 내역의 영수증이 발견되었습니다.<br>영수증을 발행하시겠습니까?",
+                btn_issue: "영수증 발행",
+                btn_donate: "<span style='font-size: 0.85rem; font-weight: 400; opacity: 0.8;'>다른 시공간의 나를 위해</span><br>팁 남겨두기 (후원)",
+                btn_download: "영수증 다운로드",
+                msg_issued: "영수증이 발행되었습니다. 잊지말고 다운로드 하세요.",
+                msg_reset: "뒤에 리셋됩니다. (랜덤 시간 리셋)",
+                
+                rc_date_past: "흔적 남긴 날짜 :",
+                rc_date_now: "영수증 발행일 :",
+                rc_stat_report: "< 상태 스캔값 >",
+                rc_val_state: "< 값 / 상태 >",
+                rc_loot_list: "< 구매 상품 >",
+                rc_value: "< 가치 >",
+                rc_subtotal: "소 계",
+                rc_tax: "널우드 세금",
+                rc_total: "총 합계",
+                rc_norefund: "* 이 영수증은 환불되지 않습니다 *",
+                stats: {
+                    health: "Health (체력)", energy: "Energy (에너지)", mental: "Mental (멘탈)", brain: "Brain (뇌 활성도)",
+                    focus: "Focus (집중)", sense: "Sense (센스)", anger: "Anger (분노)", emotion: "Emotion (감정)",
+                    stance: "Stance (성향)", social: "Social (사회성)", love: "Love (애정)", luck: "Luck (행운)"
+                },
+                val: {
+                    high: "상", mid: "중", low: "하",
+                    good: "좋음", bad: "나쁨",
+                    attack: "공격", defense: "방어",
+                    mask: "가면", real: "진심",
+                    gold: "TK" 
+                },
+                emotions: {
+                    calm: "평 온", empty: "공 허", panic: "공 황", joy: "환 희", rage: "격 노",
+                    gloom: "우 울", haze: "몽 롱", void: "무(無)", love: "사 랑", chaos: "혼 돈"
+                },
+                formats: {
+                    VHS: "비디오테잎", DVD: "DVD", "Film Reel": "필름 릴",
+                    Cassette: "카세트테잎", CD: "CD", LP: "LP판",
+                    NES: "패미컴", SNES: "슈퍼패미컴", N64: "닌텐도64", GB: "게임보이",
+                    PS1: "플레이스테이션", PS2: "PS2", PC: "PC게임", Arcade: "오락실 기판",
+                    Magazine: "잡지", Comic: "만화책(단행본)", Photobook: "화보집"
+                }
+            },
+            JP: {
+                title: "ヴァニタスの領収書",
+                sub_home: "別の時空のあなたが決済した内訳の領収書が発見されました。<br>領収書を発行しますか？",
+                btn_issue: "領収書発行",
+                btn_donate: "<span style='font-size: 0.85rem; font-weight: 400; opacity: 0.8;'>別の時空の私のために</span><br>チップを残す (支援)",
+                btn_download: "領収書ダウンロード",
+                msg_issued: "領収書が発行されました。忘れずにダウンロードしてください。",
+                msg_reset: "後にリセットされます。(ランダムリセット)",
+                rc_date_past: "痕跡を残した日 :",
+                rc_date_now: "領収書発行日 :",
+                rc_stat_report: "< 状態スキャン値 >",
+                rc_val_state: "< 値 / 状態 >",
+                rc_loot_list: "< 購入商品 >",
+                rc_value: "< 価値 >",
+                rc_subtotal: "小 計",
+                rc_tax: "ナルウッド税",
+                rc_total: "総 合計",
+                rc_norefund: "* この領収書は払い戻しできません *",
+                stats: {
+                    health: "Health (体力)", energy: "Energy (活力)", mental: "Mental (メンタル)", brain: "Brain (脳活性)",
+                    focus: "Focus (集中)", sense: "Sense (センス)", anger: "Anger (怒り)", emotion: "Emotion (感情)",
+                    stance: "Stance (性向)", social: "Social (社会性)", love: "Love (愛情)", luck: "Luck (幸運)"
+                },
+                val: {
+                    high: "高", mid: "中", low: "低",
+                    good: "良", bad: "悪",
+                    attack: "攻撃", defense: "防御",
+                    mask: "仮面", real: "本心",
+                    gold: "TK"
+                },
+                emotions: {
+                    calm: "平穏", empty: "空虚", panic: "恐慌", joy: "歓喜", rage: "激怒",
+                    gloom: "憂鬱", haze: "夢幻", void: "無", love: "愛", chaos: "混沌"
+                },
+                formats: {
+                    VHS: "ビデオテープ", DVD: "DVD", "Film Reel": "フィルムリール",
+                    Cassette: "カセットテープ", CD: "CD", LP: "LP盤",
+                    NES: "ファミコン", SNES: "スーパーファミコン", N64: "NINTENDO64", GB: "ゲームボーイ",
+                    PS1: "プレステ", PS2: "PS2", PC: "PCゲーム", Arcade: "アーケード",
+                    Magazine: "雑誌", Comic: "コミック", Photobook: "写真集"
+                }
+            },
+            TW: {
+                title: "虛空收據", 
+                sub_home: "發現了另一個時空的您所結算的收據。<br>要在這裡發行收據嗎？",
+                btn_issue: "發行收據",
+                btn_donate: "<span style='font-size: 0.85rem; font-weight: 400; opacity: 0.8;'>為了另一個時空的我</span><br>留下小費 (贊助)",
+                btn_download: "下載收據",
+                msg_issued: "收據已發行。請別忘了下載。",
+                msg_reset: "後重置。(隨機重置)",
+                rc_date_past: "留下痕跡的日期 :",
+                rc_date_now: "收據發行日 :",
+                rc_stat_report: "< 狀態掃描值 >",
+                rc_val_state: "< 値 / 狀態 >",
+                rc_loot_list: "< 購買商品 >",
+                rc_value: "< 價值 >",
+                rc_subtotal: "小 計",
+                rc_tax: "納爾伍德稅",
+                rc_total: "總 合計",
+                rc_norefund: "* 此收據恕不退還 *",
+                stats: {
+                    health: "Health (體力)", energy: "Energy (能量)", mental: "Mental (精神)", brain: "Brain (腦活性)",
+                    focus: "Focus (專注)", sense: "Sense (品味)", anger: "Anger (憤怒)", emotion: "Emotion (感情)",
+                    stance: "Stance (傾向)", social: "Social (社交)", love: "Love (愛情)", luck: "Luck (幸運)"
+                },
+                val: {
+                    high: "高", mid: "中", low: "低",
+                    good: "好", bad: "壞",
+                    attack: "攻擊", defense: "防禦",
+                    mask: "面具", real: "真心",
+                    gold: "TK"
+                },
+                emotions: {
+                    calm: "平穩", empty: "空虛", panic: "恐慌", joy: "歡喜", rage: "激怒",
+                    gloom: "憂鬱", haze: "朦朧", void: "虛無", love: "愛", chaos: "混沌"
+                },
+                formats: {
+                    VHS: "錄影帶", DVD: "DVD", "Film Reel": "電影膠卷",
+                    Cassette: "卡式錄音帶", CD: "CD", LP: "黑膠唱片",
+                    NES: "紅白機", SNES: "超任", N64: "N64", GB: "Game Boy",
+                    PS1: "PlayStation", PS2: "PS2", PC: "PC遊戲", Arcade: "街機",
+                    Magazine: "雜誌", Comic: "漫畫", Photobook: "寫真集"
+                }
+            }
+        };
+
+        let currentLang='EN'; let itemsDB={movies:[], music:[]}; let timerInterval=null;
+        
+        document.addEventListener('DOMContentLoaded',()=>{
+            const userLang = navigator.language || navigator.userLanguage;
+            let targetLang = 'EN';
+            if(userLang.includes('ko')) targetLang = 'KR';
+            else if(userLang.includes('ja')) targetLang = 'JP';
+            else if(userLang.includes('zh')) targetLang = 'TW';
+            setLang(targetLang);
+
+            // ▼▼▼ [수정됨] fetch 코드를 삭제하고 아래 코드로 교체하세요 ▼▼▼
+            
+            // items.js에서 정의한 변수(loadedItems)가 있는지 확인
+            if (typeof loadedItems !== 'undefined') {
+                itemsDB = loadedItems;
+                console.log("External items.js loaded successfully.");
+            } else {
+                console.error("Failed to load items.js. Check the file name or syntax.");
+            }
+            
+            // 데이터 지속성 체크 (기존 코드 유지)
+            checkPersistence();
+            
+            // ▲▲▲ [수정 끝] ▲▲▲
+            
+            startSingleCharGlitch();
+        });
+
+        const canvas=document.getElementById('matrixCanvas'); const ctx=canvas.getContext('2d');
+        const fontSize=10; let columns; let drops=[];
+        const matrixChars='ㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎNULLVOID01데이터기억망각오류전생윤회業運命CACHEERROR黒猫';
+        function resizeCanvas(){
+            canvas.width=window.innerWidth; canvas.height=window.innerHeight;
+            columns=canvas.width/fontSize; drops=[];
+            for(let i=0;i<Math.floor(columns);i++) drops[i]=Math.floor(Math.random()*(canvas.height/fontSize));
+        }
+        window.addEventListener('resize',resizeCanvas); resizeCanvas();
+        function drawMatrix(){
+            ctx.globalCompositeOperation = 'destination-out';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.1)'; 
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.font = fontSize + 'px monospace';
+            ctx.textAlign = 'center';
+            
+            for (let i = 0; i < drops.length; i++) {
+                if (drops[i] === undefined) drops[i] = Math.floor(Math.random() * (canvas.height / fontSize));
+                const text = matrixChars.charAt(Math.floor(Math.random() * matrixChars.length));
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.15)'; 
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+        if(window.matrixInterval) clearInterval(window.matrixInterval);
+        window.matrixInterval=setInterval(drawMatrix,33);
+
+    
+        
+        // [글리치 버그 수정 적용됨]
+        function startSingleCharGlitch() {
+            const glitchChars = '!@#$%^&*()_+{}:"<>?|~`-=[]\;\',./1234567890ABCDEFGHIJKLMNOPQRSTUVWXYZㄱㄴㄷㄹㅁㅂㅅㅇㅈㅊㅋㅌㅍㅎ';
+            
+            document.querySelectorAll('.glitch-target').forEach(el => {
+                if (!el.children.length && !el.getAttribute('data-org')) {
+                    el.setAttribute('data-org', el.innerText);
+                }
+            });
+
+            setInterval(() => {
+                const targets = document.querySelectorAll('.glitch-target');
+                if(targets.length === 0) return;
+                
+                const target = targets[Math.floor(Math.random() * targets.length)];
+                
+                if (target.children.length > 0) return;
+
+                if(!target.getAttribute('data-org')) {
+                    target.setAttribute('data-org', target.innerText);
+                }
+                const originalText = target.getAttribute('data-org');
+                
+                if(!originalText) return;
+
+                const randIdx = Math.floor(Math.random() * originalText.length);
+                const textArr = originalText.split('');
+                
+                if(textArr[randIdx] === ' ' || textArr[randIdx] === '\n') return;
+
+                textArr[randIdx] = glitchChars[Math.floor(Math.random() * glitchChars.length)];
+                target.innerText = textArr.join('');
+
+                setTimeout(() => { 
+                    target.innerText = originalText; 
+                }, 100);
+            }, 300);
+        }
+
+        function updateUIState(isResult){
+            const sh=document.getElementById('sub-home'), sr=document.getElementById('sub-result');
+            const ah=document.getElementById('action-home'), ar=document.getElementById('action-result');
+            if(isResult){ sh.classList.add('hidden'); sr.classList.remove('hidden'); ah.classList.add('hidden'); ar.classList.remove('hidden'); }
+            else{ sh.classList.remove('hidden'); sr.classList.add('hidden'); ah.classList.remove('hidden'); ar.classList.add('hidden'); }
+        }
+        
+        function setLang(lang){
+            currentLang=lang; 
+            
+            // 언어 선택 버튼 스타일 변경
+            document.querySelectorAll('.lang-select span').forEach(s => {
+                s.classList.remove('active');
+                if(s.innerText === lang || (lang==='KR' && s.innerText==='한국어') || (lang==='JP' && s.innerText==='日本語') || (lang==='TW' && s.innerText==='繁體中文')) {
+                    s.classList.add('active');
+                }
+            });
+
+            // 텍스트 변경 및 글리치 원본 갱신
+            document.querySelectorAll('[data-key]').forEach(el=>{
+                const key=el.getAttribute('data-key'); 
+                if(uiData[lang][key]) {
+                    el.innerHTML = uiData[lang][key]; // 1. 텍스트 바꿈
+                    
+                    // [!!!중요 수정!!!] 글리치 타겟이라면, 바뀐 언어를 '새로운 원본'으로 저장
+                    if(el.classList.contains('glitch-target')){
+                        el.setAttribute('data-org', el.innerText);
+                    }
+                }
+            });
+
+            // 결과 화면이 떠있다면 영수증 내용도 번역해서 다시 그리기
+            if(!document.getElementById('action-result').classList.contains('hidden')){
+                const savedData=JSON.parse(localStorage.getItem('karma_receipt_data'));
+                if(savedData){ 
+                    restoreReceipt(savedData, false); 
+                    triggerScramble(); 
+                }
+            }
+        }
+
+        /* [수정] 저장된 '만료 시간'을 기준으로 체크 */
+        function checkPersistence(){
+        const savedData = localStorage.getItem('karma_receipt_data');
+        const savedExpiry = localStorage.getItem('karma_expiry'); // 이름이 바뀌었습니다.
+        
+        if(savedData && savedExpiry){
+            // 현재 시간이 만료 시간보다 이전이라면 (아직 유효함)
+            if(Date.now() < parseInt(savedExpiry)){ 
+                restoreReceipt(JSON.parse(savedData), false); 
+                startCountdown(parseInt(savedExpiry)); 
+                return; 
+            }
+            else devReset(); // 시간이 지났으면 리셋
+        }
+        }
+
+        /* [수정] 랜덤 시간(1분~60분) 설정 후 저장 */
+        function generateReceipt(){
+            const data = createReceiptData(); 
+            localStorage.setItem('karma_receipt_data', JSON.stringify(data));
+            
+            // 1분 ~ 60분 사이 랜덤 시간 생성
+            const randomMin = Math.floor(Math.random() * 60) + 1;
+            const duration = randomMin * 60 * 1000;
+            
+            // 현재 시간 + 랜덤 지속시간 = '만료 시간'
+            const expiryTime = Date.now() + duration;
+            
+            // '시작 시간' 대신 '만료 시간'을 저장합니다.
+            localStorage.setItem('karma_expiry', expiryTime);
+
+            restoreReceipt(data, true); 
+            startCountdown(expiryTime);
+        }
+        function triggerScramble(){ setTimeout(()=>{ document.querySelectorAll('.scramble').forEach(el=>scrambleText(el)); },100); }
+        
+        function restoreReceipt(data, animate){ 
+            updateUIState(true); 
+            renderReceipt(data); 
+            triggerScramble(); 
+            
+            const paper = document.querySelector('.receipt-paper');
+            paper.classList.remove('printing');
+            
+            if(animate) {
+                paper.style.opacity = '0';
+                void paper.offsetWidth; // Reflow
+                paper.classList.add('printing');
+            } else {
+                paper.style.opacity = '1';
+            }
+        }
+
+        // [수정] 90% 확률로 (로컬 + 글로벌 흥행작)을 우선 노출하는 로직
+        const getRegionalItem = (list, lang) => {
+            // 1. '글로벌 흥행작'으로 취급할 국가 (미국, 영국 등 서구권)
+            const globalOrigins = ['US', 'UK'];
+
+            // 2. 현재 언어 설정에 따른 '로컬 국가' 정의
+            let localOrigins = [];
+            if (lang === 'KR') localOrigins = ['KR']; 
+            else if (lang === 'JP') localOrigins = ['JP'];
+            else if (lang === 'TW') localOrigins = ['TW', 'CN', 'HK'];
+            // EN일 경우엔 로컬이 곧 글로벌이므로 굳이 추가 안 함
+
+            // 3. [핵심] 우선 노출 대상 = 로컬 국가 + 글로벌 국가
+            const priorityOrigins = [...localOrigins, ...globalOrigins];
+
+            // 4. 리스트를 두 그룹으로 분류
+            // High Pool: 내 나라 작품 + 글로벌 대박 작품 (예: 한국영화 + 매트릭스, 너바나 등)
+            const highPool = list.filter(item => priorityOrigins.includes(item.origin));
+            
+            // Low Pool: 제3국 작품 (예: 한국어 설정일 때 일본, 대만 작품 등)
+            const lowPool = list.filter(item => !priorityOrigins.includes(item.origin));
+
+            // 5. 90% 확률로 High Pool에서 선택 (없으면 Low에서 선택)
+            if (Math.random() < 0.9) {
+                if (highPool.length > 0) return highPool[Math.floor(Math.random() * highPool.length)];
+                return lowPool[Math.floor(Math.random() * lowPool.length)];
+            } else {
+                // 10% 확률로 Low Pool에서 선택 (가끔 뜬금없는 제3국 명작 발견의 재미)
+                if (lowPool.length > 0) return lowPool[Math.floor(Math.random() * lowPool.length)];
+                return highPool[Math.floor(Math.random() * highPool.length)];
+            }
+        };
+
+        function createReceiptData(){
+            const randInt = (min,max) => Math.floor(Math.random()*(max-min+1))+min;
+            const bellRandom = (min, max) => {
+                const r = (Math.random() + Math.random() + Math.random()) / 3; 
+                return Math.floor(r * (max - min) + min);
+            };
+            const makeBar = (max, f, e) => {
+                const val = randInt(1, max);
+                return Array(max).fill().map((_, i) => i < val ? f : e).join('');
+            };
+            const makeCards = () => {
+                const suits = ['♥','♠','♦','♣'];
+                const ranks = ['A','2','3','4','5','6','7','8','9','10','J','Q','K'];
+                let set = new Set();
+                while(set.size < 4) set.add(suits[Math.floor(Math.random()*4)] + ranks[Math.floor(Math.random()*13)]);
+                return Array.from(set).join(' ');
+            };
+
+            const now = new Date();
+            
+            // 시간 여행 로직
+            let traceYear;
+            if (Math.random() < 0.8) traceYear = randInt(2126, 3000); 
+            else traceYear = randInt(1900, 2009); 
+
+            const formatFullDate = (dObj, yearOverride = null) => {
+                const y = yearOverride || dObj.getFullYear();
+                const m = String(dObj.getMonth() + 1).padStart(2, '0');
+                const d = String(dObj.getDate()).padStart(2, '0');
+                const h = String(dObj.getHours()).padStart(2, '0');
+                const min = String(dObj.getMinutes()).padStart(2, '0');
+                const s = String(dObj.getSeconds()).padStart(2, '0');
+                return `${y}-${m}-${d} ${h}:${min}:${s}`;
+            };
+
+            const currDate = formatFullDate(now);
+            const pastDate = formatFullDate(now, traceYear); 
+            
+            const loots = [];
+            
+            // 1. [고정] Gold (TK)
+            const goldAmount = Math.floor(Math.pow(Math.random(), 4) * 999) + 1; 
+            loots.push({ type: 'gold', price: goldAmount });
+
+
+            // ▼▼▼ [핵심] 카테고리별 확률 설정 ▼▼▼
+            const catWeights = {
+                movie: 25,
+                music: 25,
+                book: 20,
+                game: 15,
+                gravure: 15
+            };
+            
+            // 데이터베이스 키 매핑
+            const dbKeyMap = {
+                movie: 'movies',
+                music: 'music',
+                book: 'books',
+                game: 'games',
+                gravure: 'gravure'
+            };
+
+            // 가용한 아이템 풀 미리 준비 (연도 필터링)
+            const poolMap = {};
+            Object.keys(catWeights).forEach(key => {
+                const dbKey = dbKeyMap[key];
+                const rawList = itemsDB[dbKey] || [];
+                // 연도 필터링
+                const filtered = rawList.filter(item => item && item.year <= traceYear);
+                // 없으면 전체 리스트 사용 (안전장치)
+                if(filtered.length > 0) poolMap[key] = filtered;
+                else if(rawList.length > 0) poolMap[key] = rawList;
+            });
+
+            // 확률 기반 카테고리 선택 함수
+            const pickCategory = (excludeCat = null) => {
+                // 선택 가능한 카테고리만 추림 (데이터가 있는 것들 중)
+                const candidates = Object.keys(catWeights).filter(k => k !== excludeCat && poolMap[k]);
+                
+                if(candidates.length === 0) return null;
+
+                // 가중치 합 계산
+                let totalWeight = 0;
+                candidates.forEach(k => totalWeight += catWeights[k]);
+
+                // 랜덤 뽑기
+                let r = Math.random() * totalWeight;
+                for(let k of candidates) {
+                    r -= catWeights[k];
+                    if(r <= 0) return k;
+                }
+                return candidates[candidates.length - 1];
+            };
+
+            // 90% 확률로 2개, 10% 확률로 1개
+            const additionalCount = Math.random() < 0.9 ? 2 : 1;
+            
+            let firstCategory = null;
+            let usedItems = new Set();
+            
+            const calcPrice = (baseVal) => {
+                const base = baseVal || 10; 
+                let mult = (Math.random() * 0.7) + 0.8; 
+                if(Math.random() < 0.05) mult = (Math.random() * 3) + 2; 
+                return Math.floor(base * mult);
+            };
+
+            for(let i=0; i<additionalCount; i++) {
+                let selectedCat = null;
+
+                if (i === 0) {
+                    // 첫 번째 아이템: 기본 확률대로 선택
+                    selectedCat = pickCategory(null);
+                    firstCategory = selectedCat;
+                } else {
+                    // 두 번째 아이템: 10% 확률로 동일 카테고리, 90% 확률로 다른 카테고리
+                    const isSame = Math.random() < 0.1; 
+                    if (isSame && poolMap[firstCategory]) {
+                        selectedCat = firstCategory;
+                    } else {
+                        selectedCat = pickCategory(firstCategory); // 첫 번째 카테고리 제외하고 뽑기
+                    }
+                }
+
+                if (!selectedCat) break;
+
+                // 선택된 카테고리에서 아이템 뽑기 (중복 방지)
+                const itemPool = poolMap[selectedCat];
+                let selectedItem;
+                let retry = 0;
+
+                // 아이템 뽑기 & 중복 검사 (최대 5회 재시도)
+                do {
+                    if (typeof getRegionalItem === 'function') {
+                        selectedItem = getRegionalItem(itemPool, currentLang);
+                    } else {
+                        selectedItem = itemPool[Math.floor(Math.random() * itemPool.length)];
+                    }
+                    retry++;
+                } while ((usedItems.has(selectedItem) || !selectedItem) && retry < 5);
+
+                if(selectedItem && !usedItems.has(selectedItem)) {
+                    usedItems.add(selectedItem);
+                    loots.push({ 
+                        type: selectedCat, 
+                        data: selectedItem, 
+                        price: calcPrice(selectedItem.val) 
+                    });
+                }
+            }
+
+            // [비상 안전장치] 만약 Gold 외에 아무것도 안 뽑혔다면 (데이터 오류 등)
+            if (loots.length === 1) {
+                const fallbackKeys = Object.keys(poolMap);
+                if(fallbackKeys.length > 0) {
+                    const randomKey = fallbackKeys[Math.floor(Math.random() * fallbackKeys.length)];
+                    const pool = poolMap[randomKey];
+                    const item = pool[Math.floor(Math.random() * pool.length)];
+                    if(item) {
+                        loots.push({ type: randomKey, data: item, price: calcPrice(item.val || 10) });
+                    }
+                } else {
+                    // 진짜 데이터가 하나도 없을 때
+                    loots.push({ type: 'movie', data: {title:{EN:"System Error"}, year:9999, val:0}, price:0});
+                }
+            }
+
+            const emotionKey = ['calm','empty','panic','joy','rage','gloom','haze','void','love','chaos'][Math.floor(Math.random()*10)];
+            let angerVal = 0;
+            if(['rage', 'chaos'].includes(emotionKey)) angerVal = randInt(75, 100);
+            else if(['panic', 'gloom', 'joy'].includes(emotionKey)) angerVal = randInt(30, 70);
+            else angerVal = randInt(0, 20);
+
+            return {
+                pastDate, currDate,
+                health: makeBar(5,'❤','♡'),
+                energy: makeBar(5,'▰','▱'),
+                mental: makeBar(5,'◆','◇'),
+                brainIQ: bellRandom(80, 150), brainEQ: bellRandom(80, 150),
+                focus: randInt(10, 100), sense: randInt(10, 100),
+                anger: angerVal, emotion: emotionKey,
+                stance: randInt(1, 8), social: randInt(1, 8),
+                loveCap: randInt(0, 100), luck: makeCards(),
+                loots,
+                barcode:`${randInt(10,99)}-${randInt(1000,9999)}-${randInt(1000,9999)}-VANITAS`
+            };
+        }
+
+        function renderReceipt(data){
+            const t = uiData[currentLang];
+            document.getElementById('rc-date-past').innerText = data.pastDate; 
+            document.getElementById('rc-date-now').innerText = data.currDate; 
+            document.getElementById('rc-barcode-num').innerText = data.barcode;
+
+            // Stats 그리기 (기존과 동일)
+            const drawSlider = (pos, left, right) => {
+                const totalLen = 8; 
+                let line = "";
+                for(let i=1; i<=totalLen; i++) line += (i === pos) ? "●" : "-";
+                return `${left} <${line}> ${right}`;
+            };
+            
+            const stats = `
+                <div class="stat-row"><span class="stat-name">${t.stats.brain}</span><span class="stat-val scramble">IQ ${data.brainIQ} / EQ ${data.brainEQ}</span></div>
+                <div class="stat-row"><span class="stat-name">${t.stats.health}</span><span class="stat-val scramble">${data.health}</span></div>
+                <div class="stat-row"><span class="stat-name">${t.stats.energy}</span><span class="stat-val scramble">${data.energy}</span></div>
+                <div class="stat-row"><span class="stat-name">${t.stats.mental}</span><span class="stat-val scramble">${data.mental}</span></div>
+                <div class="stat-row"><span class="stat-name">${t.stats.focus}</span><span class="stat-val scramble">${data.focus} / 100</span></div>
+                <div class="stat-row"><span class="stat-name">${t.stats.sense}</span><span class="stat-val scramble">${data.sense} / 100</span></div>
+                <div class="stat-row"><span class="stat-name">${t.stats.love}</span><span class="stat-val scramble">${data.loveCap} / 100</span></div>
+                <div class="stat-row"><span class="stat-name">${t.stats.emotion}</span><span class="stat-val scramble">[ ${t.emotions[data.emotion]} ]</span></div>
+                <div class="stat-row"><span class="stat-name">${t.stats.anger}</span><span class="stat-val scramble">${data.anger} %</span></div>
+                <div class="stat-row"><span class="stat-name">${t.stats.stance}</span><span class="stat-val scramble" style="font-size:11px;">${drawSlider(data.stance, t.val.attack, t.val.defense)}</span></div>
+                <div class="stat-row"><span class="stat-name">${t.stats.social}</span><span class="stat-val scramble" style="font-size:11px;">${drawSlider(data.social, t.val.mask, t.val.real)}</span></div>
+                <div class="stat-row"><span class="stat-name">${t.stats.luck}</span><span class="stat-val scramble">${data.luck}</span></div>
+            `;
+            document.getElementById('rc-stats-list').innerHTML = stats;
+
+
+            // ▼▼▼ 구매 목록 그리기 (요청하신 포맷 적용) ▼▼▼
+            let lootHTML="", subTotal=0;
+            
+            const getLoc = (obj) => {
+                if(!obj) return ""; 
+                if(typeof obj === 'string') return obj;
+                return obj[currentLang] || obj['EN'] || "";
+            };
+            const getFmt = (fmtCode) => {
+                if(!fmtCode) return "Unknown";
+                return t.formats[fmtCode] || fmtCode; 
+            };
+
+            data.loots.forEach((item, idx) => {
+                subTotal += (item.price || 0);
+                let itemName = "";
+                
+                // 데이터 안전성 확보
+                const safeData = item.data || {};
+                const safeTitle = safeData.title || {EN: "Unknown Item"};
+                const safeArtist = safeData.artist || {EN: "Unknown Artist"};
+
+                if (item.type === 'gold') {
+                    itemName = t.val.gold || "TK"; 
+
+                } else if (item.type === 'gravure') {
+                    // [수정] 그라비아 포맷 변경 적용
+                    // 목표: Title [Fmt] (ArtistInfo / Year)
+                    
+                    const titleEN = safeTitle.EN || "";
+                    const titleJP = safeTitle.JP || titleEN;
+                    
+                    const artistEN = safeArtist.EN || "";
+                    const artistKR = safeArtist.KR || artistEN;
+                    const artistJP = safeArtist.JP || artistEN;
+                    // 대만의 경우 한자 이름(JP)을 괄호 안에 표기하는 것으로 처리
+                    const artistTW = safeArtist.TW || safeArtist.JP || artistEN;
+
+                    const fmt = getFmt(safeData.fmt);
+                    const year = safeData.year || "????";
+
+                    let titlePart = titleEN;
+                    let artistPart = artistEN;
+
+                    if (currentLang === 'KR') {
+                        // 한국: Title [Format] (ArtistEN (ArtistKR) / Year)
+                        titlePart = titleEN;
+                        artistPart = `${artistEN} (${artistKR})`;
+                    } else if (currentLang === 'JP') {
+                        // 일본: Title [Format] (ArtistJP (ArtistEN) / Year)
+                        titlePart = titleJP;
+                        artistPart = `${artistJP} (${artistEN})`;
+                    } else if (currentLang === 'TW') {
+                        // 대만: Title [Format] (ArtistEN (ArtistTW) / Year)
+                        titlePart = titleEN;
+                        artistPart = `${artistEN} (${artistTW})`;
+                    } else {
+                        // 영어: Title [Format] (ArtistEN / Year)
+                        titlePart = titleEN;
+                        artistPart = artistEN;
+                    }
+
+                    itemName = `${titlePart} [${fmt}] (${artistPart} / ${year})`;
+
+                } else {
+                    // 영화, 음악, 게임 등 기존 로직 (여기도 슬래시 구분자로 통일감 유지)
+                    const title = getLoc(safeTitle);
+                    const fmt = getFmt(safeData.fmt);
+                    
+                    let info = "";
+                    if(safeData.dir) info = getLoc(safeData.dir);
+                    else if(safeData.artist) info = getLoc(safeData.artist);
+                    
+                    const year = safeData.year || "????";
+
+                    if(info) itemName = `${title} [${fmt}] (${info} / ${year})`;
+                    else itemName = `${title} [${fmt}] (${year})`;
+                }
+
+                lootHTML += `<div class="rc-row"><span class="rc-col-left scramble">${itemName}</span><span class="rc-col-right scramble">${item.price} TK</span></div>`;
+            });
+
+            document.getElementById('rc-loot-list').innerHTML = lootHTML;
+            const tax = Math.floor(subTotal * 0.1);
+            document.getElementById('rc-subtotal').innerText = subTotal + " TK"; 
+            document.getElementById('rc-tax').innerText = "-" + tax + " TK"; 
+            document.getElementById('rc-total').innerText = (subTotal - tax) + " TK";
+        }
+        
+        function scrambleText(element){
+            const finalText=element.innerText, chars='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789$+-*/=%#@'; let iterations=0;
+            const interval=setInterval(()=>{
+                element.innerText=finalText.split('').map((letter,index)=>{if(index<iterations)return finalText[index]; return chars[Math.floor(Math.random()*chars.length)];}).join('');
+                if(iterations>=finalText.length) clearInterval(interval); iterations+=1/2;
+            },30);
+        }
+        function startCountdown(endTime){
+            if(timerInterval) clearInterval(timerInterval); const display=document.getElementById('timer-display');
+            const update=()=>{
+                const diff=endTime-Date.now(); if(diff<=0){ devReset(); return; }
+                const m=Math.floor(diff/60000), s=Math.floor((diff%60000)/1000);
+                display.innerText=`00:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+            }; update(); timerInterval=setInterval(update,1000);
+        }
+
+        // [▼▼▼ 여기를 주목하세요! 다운로드용 크기 조절 ▼▼▼]
+        function downloadReceipt() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const todayStr = `${year}${month}${day}`; 
+
+            let savedDate = localStorage.getItem('karma_dl_date');
+            let savedCount = parseInt(localStorage.getItem('karma_dl_count') || '0');
+
+            if (savedDate !== todayStr) {
+                savedCount = 1;
+                localStorage.setItem('karma_dl_date', todayStr);
+            } else {
+                savedCount++;
+            }
+            localStorage.setItem('karma_dl_count', savedCount);
+
+            const finalFileName = `Vanitas_Receipt_${todayStr}_${savedCount}.png`;
+
+            function createBarcodeDataURL() {
+                const c = document.createElement('canvas');
+                c.width = 400; c.height = 80;
+                const cx = c.getContext('2d');
+                cx.fillStyle = '#222'; 
+                let x = 0;
+                while(x < c.width) {
+                    if(Math.random() > 0.4) {
+                        const w = Math.floor(Math.random() * 4) + 2; 
+                        cx.fillRect(x, 0, w, 80);
+                        x += w + Math.floor(Math.random() * 4) + 2; 
+                    } else {
+                        x += Math.floor(Math.random() * 6) + 2;
+                    }
+                }
+                return c.toDataURL();
+            }
+
+            const exportWrapper = document.createElement('div');
+            exportWrapper.id = 'export-wrapper';
+            Object.assign(exportWrapper.style, {
+                position: 'fixed', top: '-10000px', left: '-10000px',
+                width: '1080px', height: 'auto', backgroundColor: '#1b1b1b', 
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                boxSizing: 'border-box', zIndex: '99999',
+                padding: '50px 0' 
+            });
+
+            const sourceReceipt = document.querySelector('#capture-target .receipt-wrapper');
+            const receiptClone = sourceReceipt.cloneNode(true);
+            const paper = receiptClone.querySelector('.receipt-paper');
+            const contentContainer = paper.querySelector('.rc-content-container');
+
+            paper.style.width = '760px';
+            paper.style.height = 'auto';      
+            paper.style.minHeight = '1810px'; 
+            paper.style.padding = '140px 55px 130px 55px'; 
+            paper.style.fontSize = '26px';  
+            paper.style.lineHeight = '1.4';
+            paper.style.backgroundColor = 'transparent';
+            paper.style.boxShadow = 'none';
+            paper.style.filter = 'drop-shadow(0 30px 50px rgba(0,0,0,0.5))';
+            paper.classList.remove('printing'); 
+            paper.style.opacity = '1'; 
+
+            receiptClone.querySelectorAll('.stat-val').forEach(el => {
+                if (el.style.fontSize === '11px') {
+                    el.style.fontSize = '23px'; 
+                    el.style.letterSpacing = '1px'; 
+                }
+            });
+
+            /* [수정] rcTitle 스타일 설정 부분을 찾아 숫자 변경 */
+            const rcTitle = receiptClone.querySelector('.rc-title');
+            rcTitle.style.fontSize = '60px';
+            rcTitle.style.letterSpacing = '6px';
+
+            /* ▼▼▼ 여기를 0px로 수정 ▼▼▼ */
+            rcTitle.style.marginBottom = '0px';  /* 기존 15px -> 0px */
+            rcTitle.style.lineHeight = '1';      /* 추가: 다운로드 파일에서도 줄간격 조임 */
+            /* ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲ */
+
+            rcTitle.style.whiteSpace = 'nowrap';
+
+            const rcSub = receiptClone.querySelector('.rc-sub');
+            rcSub.style.fontSize = '22px'; 
+            rcSub.style.letterSpacing = '3px';
+
+            const rcEyes = receiptClone.querySelector('.rc-eyes-container');
+            rcEyes.style.gap = '45px';
+            rcEyes.style.marginBottom = '20px';
+            receiptClone.querySelectorAll('.rc-eye').forEach(e => { 
+                e.style.width='70px'; e.style.height='70px'; e.style.borderWidth='5px'; 
+            });
+            receiptClone.querySelectorAll('.rc-pupil').forEach(p => { 
+                p.style.width='7px'; p.style.height='45px'; 
+            });
+
+            receiptClone.querySelectorAll('.rc-header').forEach(el => el.style.marginBottom = '15px');
+            receiptClone.querySelectorAll('.rc-divider').forEach(el => el.style.margin = '15px 0');
+            receiptClone.querySelectorAll('.rc-row').forEach(el => el.style.marginBottom = '10px'); 
+            receiptClone.querySelectorAll('.stat-row').forEach(el => el.style.marginBottom = '8px'); 
+            receiptClone.querySelectorAll('.stat-name').forEach(el => el.style.width = '280px');
+
+            const totalRowSpan = receiptClone.querySelector('#rc-total');
+            if(totalRowSpan) {
+                const totalRowDiv = totalRowSpan.closest('.rc-row');
+                if(totalRowDiv) {
+                    totalRowDiv.setAttribute('style', 'font-size: 36px !important; font-weight: bold; margin-bottom: 6px; display: flex; justify-content: space-between;');
+                }
+            }
+
+            const barcodeWrap = receiptClone.querySelector('.rc-barcode');
+            const barcodeLines = barcodeWrap.querySelector('.barcode-lines');
+            
+            const barcodeImgUrl = createBarcodeDataURL();
+            barcodeLines.style.background = 'none'; 
+            barcodeLines.style.backgroundImage = `url(${barcodeImgUrl})`;
+            barcodeLines.style.backgroundSize = '100% 100%';
+            barcodeLines.style.backgroundRepeat = 'no-repeat';
+            
+            barcodeWrap.style.marginTop = '60px'; 
+            barcodeWrap.style.paddingTop = '30px'; 
+            barcodeLines.style.height = '80px'; 
+            barcodeLines.style.width = '95%';    
+            const barcodeNum = barcodeWrap.querySelector('#rc-barcode-num');
+            barcodeNum.style.fontSize = '30px'; 
+
+            const newFooter = document.createElement('div');
+            newFooter.innerHTML = "Vanitas Receipt. Design By SHHAN<br>&copy; 2026 SHHAN. All rights reserved.";
+            newFooter.style.marginTop = '35px';
+            newFooter.style.color = '#555'; 
+            newFooter.style.fontSize = '24px'; 
+            newFooter.style.fontFamily = "'Courier Prime', monospace";
+            newFooter.style.textAlign = 'center';
+            newFooter.style.lineHeight = '1.6';
+            
+            contentContainer.appendChild(newFooter);
+
+            exportWrapper.appendChild(receiptClone);
+            document.body.appendChild(exportWrapper);
+
+            html2canvas(exportWrapper, {
+                scale: 1, backgroundColor: "#1b1b1b", useCORS: true, logging: false,
+                onclone: (clonedDoc) => {
+                    const clonedPaper = clonedDoc.querySelector('#export-wrapper .receipt-paper');
+                    clonedPaper.style.transform = 'none'; 
+                    clonedPaper.style.animation = 'none';
+                }
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = finalFileName;
+                link.href = canvas.toDataURL("image/png");
+                link.click();
+                document.body.removeChild(exportWrapper);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -723,17 +723,16 @@
         /* [수정] 저장된 '만료 시간'을 기준으로 체크 */
         function checkPersistence(){
         const savedData = localStorage.getItem('karma_receipt_data');
-        const savedExpiry = localStorage.getItem('karma_expiry'); // 이름이 바뀌었습니다.
-        
-        if(savedData && savedExpiry){
-            // 현재 시간이 만료 시간보다 이전이라면 (아직 유효함)
-            if(Date.now() < parseInt(savedExpiry)){ 
-                restoreReceipt(JSON.parse(savedData), false); 
-                startCountdown(parseInt(savedExpiry)); 
-                return; 
+        const savedExpiry = localStorage.getItem('karma_expiry');
+    
+            if(savedData && savedExpiry){
+                if(Date.now() < parseInt(savedExpiry)){ 
+                    restoreReceipt(JSON.parse(savedData), false); 
+                    startCountdown(parseInt(savedExpiry)); 
+                    return; 
+                }
+                else systemReset(); // [수정] devReset -> systemReset 으로 변경
             }
-            else devReset(); // 시간이 지났으면 리셋
-        }
         }
 
         /* [수정] 랜덤 시간(1분~60분) 설정 후 저장 */
@@ -1125,7 +1124,11 @@
         function startCountdown(endTime){
             if(timerInterval) clearInterval(timerInterval); const display=document.getElementById('timer-display');
             const update=()=>{
-                const diff=endTime-Date.now(); if(diff<=0){ devReset(); return; }
+                const diff=endTime-Date.now(); 
+                
+                // [수정] 시간이 다 되면 시스템 리셋 실행
+                if(diff<=0){ systemReset(); return; } 
+                
                 const m=Math.floor(diff/60000), s=Math.floor((diff%60000)/1000);
                 display.innerText=`00:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
             }; update(); timerInterval=setInterval(update,1000);
@@ -1289,6 +1292,15 @@
                 document.body.removeChild(exportWrapper);
             });
         }
+        /* [수정] 시스템 리셋 함수 (다시 추가) */
+    function systemReset(){ 
+    console.log("System Resetting...");
+    localStorage.removeItem('karma_receipt_data'); 
+    localStorage.removeItem('karma_expiry'); 
+    localStorage.removeItem('karma_dl_date');
+    localStorage.removeItem('karma_dl_count');
+    location.reload(); // 여기서 페이지를 새로고침 해줍니다.
+}
     </script>
 </body>
 </html>
